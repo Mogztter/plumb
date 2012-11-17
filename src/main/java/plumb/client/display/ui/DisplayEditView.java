@@ -1,6 +1,12 @@
 package plumb.client.display.ui;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.event.dom.client.KeyDownEvent;
+import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyPressHandler;
+import com.google.gwt.event.dom.client.KeyUpEvent;
+import com.google.gwt.event.dom.client.KeyUpHandler;
 import com.google.gwt.i18n.client.Messages;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -50,6 +56,10 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 
 	Map<String, CustomWidget> customFields = new HashMap<String, CustomWidget>();
 
+	Map<String, KeyPressHandler> customKeyPressHandler = new HashMap<String, KeyPressHandler>();
+	Map<String, KeyDownHandler> customKeyDownHandler = new HashMap<String, KeyDownHandler>();
+	Map<String, KeyUpHandler> customKeyUpHandler = new HashMap<String, KeyUpHandler>();
+
 	public DisplayEditView() {
 		initWidget(container);
 	}
@@ -67,6 +77,18 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 
 	public DisplayEditView(B display) {
 		this(display, null);
+	}
+
+	public void addKeyPressHandler(final String fieldName, final KeyPressHandler keyPressHandler) {
+		customKeyPressHandler.put(fieldName, keyPressHandler);
+	}
+
+	public void addKeyDownHandler(final String fieldName, final KeyDownHandler keyDownHandler) {
+		customKeyDownHandler.put(fieldName, keyDownHandler);
+	}
+
+	public void addKeyUpHandler(final String fieldName, final KeyUpHandler keyUpHandler) {
+		customKeyUpHandler.put(fieldName, keyUpHandler);
 	}
 
 	private void populate(B _display) {
@@ -116,8 +138,25 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 		}
 		setCustomProperties(field, composite);
 		final Widget widget = composite.asWidget();
+		bindFieldToEvent(fieldName, widget);
 		container.add(widget);
 		fields.put(field, widget);
+	}
+
+	private void bindFieldToEvent(String fieldName, Widget widget) {
+		final KeyUpHandler keyUpHandler = customKeyUpHandler.get(fieldName);
+		final KeyDownHandler keyDownHandler = customKeyDownHandler.get(fieldName);
+		final KeyPressHandler keyPressHandler = customKeyPressHandler.get(fieldName);
+		if (keyUpHandler != null) {
+
+			widget.addDomHandler(keyUpHandler, KeyUpEvent.getType());
+		}
+		if (keyDownHandler != null) {
+			widget.addDomHandler(keyDownHandler, KeyDownEvent.getType());
+		}
+		if (keyPressHandler != null) {
+			widget.addDomHandler(keyPressHandler, KeyPressEvent.getType());
+		}
 	}
 
 	/**
