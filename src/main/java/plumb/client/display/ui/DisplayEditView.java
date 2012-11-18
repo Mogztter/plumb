@@ -1,15 +1,18 @@
-/**
- * 
- */
 package plumb.client.display.ui;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.gwt.core.client.GWT;
+import com.google.gwt.event.dom.client.KeyDownEvent;
+import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.event.dom.client.KeyPressEvent;
+import com.google.gwt.event.dom.client.KeyPressHandler;
+import com.google.gwt.event.dom.client.KeyUpEvent;
+import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.i18n.client.Messages;
+import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.Widget;
 import plumb.client.display.DisplayService;
 import plumb.client.display.DisplayServiceAsync;
 import plumb.client.widget.form.CustomFormField;
@@ -19,47 +22,48 @@ import plumb.client.widget.form.NumberFormField;
 import plumb.client.widget.form.SimpleFormField;
 import plumb.shared.display.DisplayBean;
 import plumb.shared.display.DisplayField;
-import plumb.shared.display.DisplayProperty;
 import plumb.shared.validation.ValidationType;
 
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.Widget;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author bkhadige
- * 
  */
 public class DisplayEditView<B extends DisplayBean> extends Composite {
 
 	private static final String STRING_TYPE = "java.lang.String";
 
 	private static final String INT_TYPE = "int";
-	
+
 	private static final String DATE_TYPE = "java.util.Date";
 
 	private B display;
 
-    // fields having invalid values on flush()
-    private Set<String> invalidFields = new HashSet<String>();
-	
+	// fields having invalid values on flush()
+	private Set<String> invalidFields = new HashSet<String>();
+
 	private DriverDelegate<B> delegate = GWT.create(DriverDelegate.class);
 
 	DisplayServiceAsync service = GWT.create(DisplayService.class);
 
 	FlowPanel container = new FlowPanel();
-	
+
 	Map<DisplayField, Widget> fields = new HashMap<DisplayField, Widget>();
-	
+
 	Map<String, CustomWidget> customFields = new HashMap<String, CustomWidget>();
+
+	Map<String, KeyPressHandler> customKeyPressHandler = new HashMap<String, KeyPressHandler>();
+	Map<String, KeyDownHandler> customKeyDownHandler = new HashMap<String, KeyDownHandler>();
+	Map<String, KeyUpHandler> customKeyUpHandler = new HashMap<String, KeyUpHandler>();
 
 	public DisplayEditView() {
 		initWidget(container);
 	}
-	
+
 	public DisplayEditView(B display, Set<CustomWidget> customWidgets) {
 		this();
 		this.display = display;
@@ -70,9 +74,21 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 		}
 		populate(display);
 	}
-	
+
 	public DisplayEditView(B display) {
 		this(display, null);
+	}
+
+	public void addKeyPressHandler(final String fieldName, final KeyPressHandler keyPressHandler) {
+		customKeyPressHandler.put(fieldName, keyPressHandler);
+	}
+
+	public void addKeyDownHandler(final String fieldName, final KeyDownHandler keyDownHandler) {
+		customKeyDownHandler.put(fieldName, keyDownHandler);
+	}
+
+	public void addKeyUpHandler(final String fieldName, final KeyUpHandler keyUpHandler) {
+		customKeyUpHandler.put(fieldName, keyUpHandler);
 	}
 
 	private void populate(B _display) {
@@ -81,8 +97,7 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 				new AsyncCallback<List<DisplayField>>() {
 					@Override
 					public void onSuccess(List<DisplayField> properties) {
-						for (Iterator<DisplayField> iterator = properties.iterator(); iterator.hasNext();) {
-							DisplayField displayField = iterator.next();
+						for (DisplayField displayField : properties) {
 							bindFieldToWidget(displayField);
 						}
 					}
@@ -98,43 +113,65 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 	 * @param field
 	 */
 	public void bindFieldToWidget(DisplayField field) {
-		if (! customFields.containsKey(field.name)) {
-			Composite w = null;
-			if (field.typeName.equals(DisplayEditView.STRING_TYPE)) {
-				w = new SimpleFormField(field.mandatory, field.name);
+		final Composite composite;
+		final String fieldName = field.name;
+		if (!customFields.containsKey(fieldName)) {
+			final String fieldTypeName = field.typeName;
+			if (DisplayEditView.STRING_TYPE.equals(fieldTypeName)) {
+				composite = new SimpleFormField(field.mandatory, fieldName);
+			} else if (DisplayEditView.INT_TYPE.equals(fieldTypeName)) {
+				composite = new NumberFormField(field.mandatory, fieldName);
+			} else if (DisplayEditView.DATE_TYPE.equals(fieldTypeName)) {
+				composite = new DateFormField(field.mandatory, fieldName);
 			} else {
-				if (field.typeName.equals(DisplayEditView.INT_TYPE)) {
-					w = new NumberFormField(field.mandatory, field.name);
-				} else if (field.typeName.equals(DisplayEditView.DATE_TYPE)) {
-					w = new DateFormField(field.mandatory, field.name);
-				} 
+				// TODO : add other types
+				final ExceptionMessages exceptionMessages = GWT.create(ExceptionMessages.class);
+				throw new UnsupportedOperationException(exceptionMessages.typeNotYetSupported(fieldTypeName));
 			}
-			
+
 			ValidationType[] validation = field.validation;
-			for (int i = 0; i < validation.length; i++) {
-				((FormField) w).addValidationType(validation[i]); // FIXME : refactor
+			for (ValidationType aValidation : validation) {
+				((FormField) composite).addValidationType(aValidation); // FIXME : refactor
 			}
-			setCustomProperties(field, w);
-			
-			// TODO : add other types
-			fields.put(field, w);
-			container.add(w.asWidget());
 		} else {
-			CustomFormField w2 = new CustomFormField(field.mandatory, field.name,customFields.get(field.name).w);
-			container.add(w2);
-			setCustomProperties(field, w2);
-            fields.put(field, w2);
+			composite = new CustomFormField(field.mandatory, fieldName, customFields.get(fieldName).w);
+		}
+		setCustomProperties(field, composite);
+		final Widget widget = composite.asWidget();
+		bindFieldToEvent(fieldName, widget);
+		container.add(widget);
+		fields.put(field, widget);
+	}
+
+	private void bindFieldToEvent(String fieldName, Widget widget) {
+		final KeyUpHandler keyUpHandler = customKeyUpHandler.get(fieldName);
+		final KeyDownHandler keyDownHandler = customKeyDownHandler.get(fieldName);
+		final KeyPressHandler keyPressHandler = customKeyPressHandler.get(fieldName);
+		if (keyUpHandler != null) {
+
+			widget.addDomHandler(keyUpHandler, KeyUpEvent.getType());
+		}
+		if (keyDownHandler != null) {
+			widget.addDomHandler(keyDownHandler, KeyDownEvent.getType());
+		}
+		if (keyPressHandler != null) {
+			widget.addDomHandler(keyPressHandler, KeyPressEvent.getType());
 		}
 	}
 
 	/**
-	 * set custom size and label defined in {@link DisplayProperty}
+	 * Set custom size and label defined in {@link plumb.shared.display.DisplayProperty}
+	 *
 	 * @param field
-	 * @param w
+	 * @param composite
 	 */
-	private void setCustomProperties(DisplayField field, Composite w) {
-		if (field.size > 0) ((FormField) w).setWidth(String.valueOf(field.size) + "px");
-		if (!"".equals(field.label)) ((FormField) w).setLabel(field.label);
+	private void setCustomProperties(DisplayField field, Composite composite) {
+		if (field.size > 0) {
+			composite.setWidth(String.valueOf(field.size) + "px");
+		}
+		if (!"".equals(field.label)) {
+			((FormField) composite).setLabel(field.label);
+		}
 	}
 
 	@Override
@@ -143,25 +180,31 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 	}
 
 	public B flush() {
-        invalidFields.clear();
-        final Iterator<Widget> iterator = fields.values().iterator();
-        while (iterator.hasNext()) {
-            final Widget f = iterator.next();
-            FormField formField = (FormField) f;
+		invalidFields.clear();
+		for (Widget widget : fields.values()) {
+			FormField formField = (FormField) widget;
 			if (formField.hasError()) {
-                invalidFields.add(formField.toString()); // FIXME add propertyName to FormField
-            }
-        }
-        if (invalidFields.isEmpty()) {
-            display = delegate.flush(display, fields);
-        } else {
-        	GWT.log("invalid fields for display " + display.getClass().getName());
-        }
+				invalidFields.add(formField.toString()); // FIXME add propertyName to FormField
+			}
+		}
+		if (invalidFields.isEmpty()) {
+			display = delegate.flush(display, fields);
+		} else {
+			GWT.log("invalid fields for display " + display.getClass().getName());
+		}
 		return display;
-    }
+	}
 
-    public boolean hasErrors() {
-        return ! invalidFields.isEmpty();
-    }
+	public boolean hasErrors() {
+		return !invalidFields.isEmpty();
+	}
 
+	public interface ExceptionMessages extends Messages {
+		/**
+		 * @param fieldTyeName the field type name
+		 * @return a message specifying that the field type is not yet supported
+		 */
+		@DefaultMessage("Type {0} is not supported yet !")
+		String typeNotYetSupported(String fieldTyeName);
+	}
 }
