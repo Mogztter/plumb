@@ -48,7 +48,6 @@ public class CustomFormField extends FormField implements HasBlurHandlers {
 		@Override
 		public void onBlur(BlurEvent event) {
 			error.setHTML("");
-			error.setHTML("");
 			if (mandatory && (((HasText) field).getText() == null || "".equals(((HasText) field).getText()))) {
 				final SafeHtml errorMessage = new SafeHtmlBuilder().appendEscaped(ERR_CHAMP_OBLIGATOIRE).toSafeHtml();
 				error.setHTML(errorMessage);

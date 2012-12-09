@@ -9,7 +9,7 @@
 	</ui:style>
 	<g:FlowPanel>
 		<g:Label ui:field="label" styleName="formLabel"/>
-		<g:Widget ui:field="field"/>
-		<g:HTML ui:field="error" styleName="errorText"/>
+        <g:ListBox ui:field="field"/>
+        <g:HTML ui:field="error" styleName="errorText"/>
 	</g:FlowPanel>
 </ui:UiBinder> 

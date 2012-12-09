@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>plumb</groupId>
 	<artifactId>plumb</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>plumb</name>
 
 	<properties>
@@ -76,7 +76,7 @@
 							<value>${project.build.directory}</value>
 						</property>
 
-						<!-- Do not accidently package server test marshallers when building 
+						<!-- Do not accidently package server test marshallers when building
 							Errai -->
 						<property>
 							<name>errai.marshalling.server.classOutput.enabled</name>
@@ -93,9 +93,6 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
-					<!-- <includes> -->
-					<!-- <include>src/main/java/**/*.java</include> -->
-					<!-- </includes> -->
 				</configuration>
 			</plugin>
 

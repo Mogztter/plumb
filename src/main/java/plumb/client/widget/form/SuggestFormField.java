@@ -1,13 +1,12 @@
 /**
- * 
+ *
  */
 package plumb.client.widget.form;
 
+import java.util.Arrays;
+
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.HasKeyUpHandlers;
 import com.google.gwt.event.dom.client.KeyUpEvent;
-import com.google.gwt.event.dom.client.KeyUpHandler;
-import com.google.gwt.event.logical.shared.HasValueChangeHandlers;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.safehtml.shared.SafeHtml;
@@ -15,9 +14,7 @@ import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
-import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
 import com.google.gwt.user.client.ui.SuggestBox;
@@ -26,12 +23,14 @@ import com.google.gwt.user.client.ui.Widget;
 
 /**
  * @author bkhadige
- *
  */
-public class SuggestFormField extends Composite implements HasText, HasKeyUpHandlers, HasValueChangeHandlers<String> {
+public class SuggestFormField extends FormField {
 
 	private static SuggestFormFieldUiBinder uiBinder = GWT
 			.create(SuggestFormFieldUiBinder.class);
+
+	private boolean mandatory = false;
+	private final MultiWordSuggestOracle suggestOracle = new MultiWordSuggestOracle();
 
 	interface SuggestFormFieldUiBinder extends UiBinder<Widget, SuggestFormField> {
 	}
@@ -39,7 +38,7 @@ public class SuggestFormField extends Composite implements HasText, HasKeyUpHand
 	public SuggestFormField() {
 		initWidget(uiBinder.createAndBindUi(this));
 	}
-	
+
 	public SuggestFormField(boolean mandatory, String labelText) {
 		this.mandatory = mandatory;
 		label = new Label(labelText);
@@ -48,35 +47,23 @@ public class SuggestFormField extends Composite implements HasText, HasKeyUpHand
 		}
 		initWidget(uiBinder.createAndBindUi(this));
 		field.addStyleName("suggestformField");
-//		field.addSelectionHandler(new SelectionHandler<SuggestOracle.Suggestion>() {
-//			@Override
-//			public void onSelection(SelectionEvent<Suggestion> event) {
-//				final String suggestion = event.getSelectedItem().getReplacementString();
-//				if (suggestionsMap.containsKey(suggestion)) {
-//					description.setValue(suggestionsMap.get(suggestion).getLabel());
-//				} else {
-//					Window.alert("invalid suggestion");
-//				}
-//			}
-//		});
 	}
-	
-	boolean mandatory = false;
 
-	@UiField(provided=true)
-	Label label = new Label();
-	
-	private final MultiWordSuggestOracle suggestions = new MultiWordSuggestOracle();
+	@Override
+	protected Widget getField() {
+		return field;
+	}
 
-	// TODO
-//	Map<String, SuggestDisplay> suggestionsMap = new HashMap<String, SuggestDisplay>();
-	
 	@UiField(provided = true)
-	SuggestBox field = new SuggestBox(suggestions);
-	
+	Label label = new Label();
+
+
+	@UiField(provided = true)
+	SuggestBox field = new SuggestBox(suggestOracle);
+
 	@UiField
 	TextBox description;
-	
+
 	@UiField
 	HTML error;
 
@@ -84,7 +71,7 @@ public class SuggestFormField extends Composite implements HasText, HasKeyUpHand
 	void onKeyUp(KeyUpEvent e) {
 		error.setHTML("");
 		if (mandatory) {
-			if (field.getText() == null	|| "".equals(field.getText())) {
+			if (field.getText() == null || "".equals(field.getText())) {
 				final SafeHtml errorMessage = new SafeHtmlBuilder().appendEscaped("Champ obligatoire").toSafeHtml();
 				error.setHTML(errorMessage);
 			}
@@ -93,7 +80,7 @@ public class SuggestFormField extends Composite implements HasText, HasKeyUpHand
 
 	public void setText(String text) {
 		if (text != null) {
-			field.setText(text); 
+			field.setText(text);
 		} else {
 			throw new RuntimeException("null value is not supported");
 		}
@@ -111,29 +98,33 @@ public class SuggestFormField extends Composite implements HasText, HasKeyUpHand
 		error.setText("recherche invalide");
 	}
 
-	@Override
-	public HandlerRegistration addKeyUpHandler(KeyUpHandler handler) {
-		return field.addKeyUpHandler(handler);
-	}
-
-	@Override
-	public HandlerRegistration addValueChangeHandler(
-			ValueChangeHandler<String> handler) {
-		return field.addValueChangeHandler(handler);
-	}
-
-//	public void addSuggestion(SuggestDisplay d) {
-//		suggestionsMap.put(d.getCode(), d);
-//		suggestions.add(d.getCode());
-//	}
-//
-//	public void clearSuggestions() {
-//		suggestions.clear();
-//		suggestionsMap.clear();
-//	}
-	
 	public void showSuggestionList() {
 		field.showSuggestionList();
 	}
 
+	public void setSuggestion(String[] suggestions) {
+		suggestOracle.clear();
+		suggestOracle.setDefaultSuggestionsFromText(Arrays.asList(suggestions));
+	}
+
+	@Override
+	public Object getValue() {
+		return field.getValue();
+	}
+
+	@Override
+	public void setValue(Object value) {
+		field.setValue((String) value);
+	}
+
+	@Override
+	public void setValue(Object value, boolean fireEvents) {
+		field.setValue((String) value);
+	}
+
+	@Override
+	public HandlerRegistration addValueChangeHandler(ValueChangeHandler handler) {
+		// TODO
+		return null;
+	}
 }

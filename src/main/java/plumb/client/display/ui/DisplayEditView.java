@@ -1,5 +1,12 @@
 package plumb.client.display.ui;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
@@ -13,32 +20,30 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Widget;
+
 import plumb.client.display.DisplayService;
 import plumb.client.display.DisplayServiceAsync;
 import plumb.client.widget.form.CustomFormField;
 import plumb.client.widget.form.DateFormField;
 import plumb.client.widget.form.FormField;
+import plumb.client.widget.form.ListFormField;
 import plumb.client.widget.form.NumberFormField;
 import plumb.client.widget.form.SimpleFormField;
+import plumb.client.widget.form.SuggestFormField;
 import plumb.shared.display.DisplayBean;
 import plumb.shared.display.DisplayField;
 import plumb.shared.validation.ValidationType;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author bkhadige
  */
 public class DisplayEditView<B extends DisplayBean> extends Composite {
 
+	public static final String SUGGESTION_TYPE = "suggestion";
+	public static final String LIST_TYPE = "list";
+
 	private static final String STRING_TYPE = "java.lang.String";
-
 	private static final String INT_TYPE = "int";
-
 	private static final String DATE_TYPE = "java.util.Date";
 
 	private B display;
@@ -123,7 +128,16 @@ public class DisplayEditView<B extends DisplayBean> extends Composite {
 				composite = new NumberFormField(field.mandatory, fieldName);
 			} else if (DisplayEditView.DATE_TYPE.equals(fieldTypeName)) {
 				composite = new DateFormField(field.mandatory, fieldName);
-			} else {
+			} else if (DisplayEditView.SUGGESTION_TYPE.equals(fieldTypeName)) {
+				final SuggestFormField suggestFormField = new SuggestFormField(field.mandatory, fieldName);
+				suggestFormField.setSuggestion(field.suggestions);
+				composite = suggestFormField;
+			} else if (DisplayEditView.LIST_TYPE.equals(fieldTypeName)) {
+				final ListFormField listFormField = new ListFormField(field.mandatory, fieldName);
+				listFormField.setValues(Arrays.asList(field.list));
+				composite = listFormField;
+			}
+			else {
 				// TODO : add other types
 				final ExceptionMessages exceptionMessages = GWT.create(ExceptionMessages.class);
 				throw new UnsupportedOperationException(exceptionMessages.typeNotYetSupported(fieldTypeName));

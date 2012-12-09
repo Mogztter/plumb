@@ -10,7 +10,7 @@
 	</ui:style>
 	<g:FlowPanel>
 		<g:Label ui:field="label" styleName="formLabel"/>
-		<d:DateBox ui:field="field" ></d:DateBox>
-		<g:HTML ui:field="error" styleName="errorText"></g:HTML>
+		<d:DateBox ui:field="field"/>
+		<g:HTML ui:field="error" styleName="errorText"/>
 	</g:FlowPanel>
 </ui:UiBinder> 
